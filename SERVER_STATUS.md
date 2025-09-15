@@ -56,3 +56,4 @@ Double-click: start_server.bat
 - Yahoo Finance errors are normal (rate limiting) - system handles gracefully
 - Console shows all activity for debugging
 - Use Ctrl+C to stop server gracefully
+
