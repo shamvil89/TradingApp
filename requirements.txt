@@ -1,0 +1,5 @@
+breeze-connect==1.0.64
+filelock==3.16.0
+requests==2.32.3
+yfinance==0.2.43
+tzdata==2025.2
