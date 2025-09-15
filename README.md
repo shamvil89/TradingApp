@@ -14,9 +14,20 @@ pip install -r requirements.txt
 
 ### 3) Run (recommended)
 ```bash
-python -u trader.py
+python trader.py
 ```
 This unified loop continuously buys and sells according to rules and re-enters when conditions allow.
+
+### Web dashboard (optional)
+- Start the API and web server:
+```bash
+uvicorn server:app --host 0.0.0.0 --port 8000
+```
+- Open in browser: http://localhost:8000/web
+- Features:
+  - Live symbol, LTP, position, totals
+  - Flatten (sell market) button
+  - View current rules
 
 ### Notes
 - Archived older scripts are in `archive/` (`buy.py`, `monitor.py`). Prefer `trader.py`.

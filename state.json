@@ -1,9 +1,7 @@
 {
-  "position": {
-    "symbol": "HERFOO",
-    "qty": 2,
-    "avg_price": 489.65
-  },
-  "total_pnl": 1.0500000000000682,
-  "last_sell_price": 489.6
+  "position": null,
+  "total_pnl": 0.0,
+  "last_sell_price": null,
+  "trades_today_date": "2025-09-15",
+  "trades_today_count": 0
 }

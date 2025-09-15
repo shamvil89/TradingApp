@@ -1,6 +1,7 @@
 import json
 import os
 from contextlib import contextmanager
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 from filelock import FileLock
@@ -9,11 +10,17 @@ STATE_FILE = "state.json"
 LOCK_FILE = "state.json.lock"
 
 
+def _today_str() -> str:
+	return datetime.now().strftime("%Y-%m-%d")
+
+
 def _default_state() -> Dict[str, Any]:
 	return {
 		"position": None,  # or {symbol, qty, avg_price}
 		"total_pnl": 0.0,
 		"last_sell_price": None,
+		"trades_today_date": _today_str(),
+		"trades_today_count": 0,
 	}
 
 
@@ -37,6 +44,14 @@ def read_state() -> Dict[str, Any]:
 				state["last_sell_price"] = None
 			if "position" not in state:
 				state["position"] = None
+			if "trades_today_date" not in state:
+				state["trades_today_date"] = _today_str()
+			if "trades_today_count" not in state:
+				state["trades_today_count"] = 0
+			# Rollover daily counter if date changed
+			if state.get("trades_today_date") != _today_str():
+				state["trades_today_date"] = _today_str()
+				state["trades_today_count"] = 0
 			return state
 	except Exception:
 		return _default_state()
@@ -45,6 +60,14 @@ def read_state() -> Dict[str, Any]:
 def write_state(state: Dict[str, Any]) -> None:
 	with open(STATE_FILE, "w") as f:
 		json.dump(state, f, indent=2)
+
+
+def reset_state() -> Dict[str, Any]:
+	"""Reset state.json to defaults and return it."""
+	with _locked_state():
+		state = _default_state()
+		write_state(state)
+		return state
 
 
 def get_position() -> Optional[Dict[str, Any]]:
@@ -97,3 +120,17 @@ def get_last_sell_price() -> Optional[float]:
 		state = read_state()
 		val = state.get("last_sell_price")
 		return None if val is None else float(val)
+
+
+def increment_trades_today() -> int:
+	with _locked_state():
+		state = read_state()
+		state["trades_today_count"] = int(state.get("trades_today_count", 0)) + 1
+		write_state(state)
+		return state["trades_today_count"]
+
+
+def get_trades_today() -> int:
+	with _locked_state():
+		state = read_state()
+		return int(state.get("trades_today_count", 0))

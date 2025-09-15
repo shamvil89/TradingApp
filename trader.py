@@ -4,7 +4,7 @@ from typing import Optional
 
 from breeze_client import BreezeClient
 from rules import RuleEngine
-from state import get_position, set_position, clear_position, add_realized_pnl, get_total_pnl, set_last_sell_price, get_last_sell_price
+from state import get_position, set_position, clear_position, add_realized_pnl, get_total_pnl, set_last_sell_price, get_last_sell_price, increment_trades_today
 from quote_router import get_ltp
 from symbols import read_symbol_entry
 
@@ -39,7 +39,6 @@ def main() -> None:
 			continue
 
 		if pos is None:
-			# Optional re-entry: if we sold higher and price is now lower, allow immediate buy
 			last_sell = get_last_sell_price()
 			if last_sell is not None and ltp < last_sell:
 				print(f"BUY (price below last sell {last_sell}) at {ltp}")
@@ -57,10 +56,8 @@ def main() -> None:
 					pass
 				set_position(display_symbol, rules.quantity, avg_price)
 				print(f"Bought {display_symbol} qty={rules.quantity} avg_price={avg_price}")
-				# do not clear last_sell; it is for reference only
 				immediate_bought = True
 			else:
-				# One-time immediate buy on start, if enabled
 				if rules.buy_immediate_on_start and not immediate_bought:
 					print(f"BUY (immediate on start) at {ltp}")
 					resp = client.place_market_order(
@@ -79,7 +76,6 @@ def main() -> None:
 					print(f"Bought {display_symbol} qty={rules.quantity} avg_price={avg_price}")
 					immediate_bought = True
 				else:
-					# No position: update window and check for entry
 					rules.update_price(ltp)
 					if not rules.ready() and not rules.buy_immediate_on_start:
 						print("[debug] warming up price window...")
@@ -102,7 +98,6 @@ def main() -> None:
 					else:
 						print("[debug] no buy trigger yet.")
 		else:
-			# Have a position: check for exit
 			avg_buy = float(pos.get("avg_price", 0))
 			should_exit, reason = rules.should_sell(ltp, avg_buy)
 			if should_exit:
@@ -113,11 +108,11 @@ def main() -> None:
 					action="SELL",
 					quantity=rules.quantity,
 				)
-				# Realized PnL
 				pnl = (ltp - avg_buy) * float(pos.get("qty", 0) or 0)
 				total = add_realized_pnl(pnl)
 				set_last_sell_price(ltp)
 				clear_position()
+				increment_trades_today()
 				print(f"Sold {display_symbol} due to {reason} at approx {ltp}; trade PnL={pnl:.2f}; total PnL={total:.2f}")
 			else:
 				print("[debug] holding; no exit trigger.")

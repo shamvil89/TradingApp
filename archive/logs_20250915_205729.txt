@@ -1,0 +1,4 @@
+[manager] trader started
+Trader started for WIPRO (source=yf).
+[debug] LTP=251.28
+Market closed; no new orders.

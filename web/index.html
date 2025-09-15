@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>HERFOO_TRADES Dashboard</title>
+	<style>
+		:root { --bg:#0f1218; --panel:#171b23; --panel-alt:#1d2330; --text:#e6edf3; --muted:#9aa4b2; --accent:#4aa3ff; --accent-2:#65d48c; --danger:#ff6b6b; --warn:#ffcf66; --border:#242a36; --pred:#a066ff; }
+		* { box-sizing: border-box; min-width: 0; user-select: none; -webkit-user-select: none; -ms-user-select: none; }
+		body { margin: 0; font-family: Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+		a { color: var(--accent); text-decoration: none; }
+		.header { display:flex; align-items:center; justify-content:space-between; padding: clamp(10px, 2vw, 16px) clamp(12px, 2vw, 20px); background: var(--panel); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+		.brand { display:flex; gap: 10px; align-items: center; }
+		.brand .logo { width: clamp(20px, 3vw, 28px); height: clamp(20px, 3vw, 28px); border-radius: 6px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 20px rgba(74,163,255,0.25); }
+		.brand h1 { font-size: clamp(13px, 2.2vw, 16px); margin: 0; letter-spacing: .4px; font-weight: 600; }
+		.small { color: var(--muted); font-size: clamp(10px, 1.8vw, 12px); }
+		.container { max-width: 1280px; margin: 0 auto; padding: clamp(12px, 2vw, 20px); }
+		.tabs { display:flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+		.tab { padding: 8px 12px; border:1px solid var(--border); background: var(--panel-alt); color: var(--text); border-radius: 8px; cursor:pointer; font-size: clamp(11px, 2vw, 14px); }
+		.tab.active { background: var(--accent); color: #08111e; border-color: transparent; }
+		.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: clamp(12px, 2vw, 16px); box-shadow: 0 10px 24px rgba(0,0,0,0.28); }
+		.card.metric .metric-body { display:flex; flex-direction: column; gap: 12px; }
+		.card.metric .chip { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02)); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+		.card.metric .chip .label { font-size: clamp(10px, 1.8vw, 12px); color: var(--muted); text-transform: uppercase; }
+		.card.metric .chip .value { font-size: clamp(18px, 4.5vw, 24px); font-weight: 800; }
+		.big { font-size: clamp(18px, 5.5vw, 28px); font-weight: 800; letter-spacing: .3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.kv { display:flex; align-items:baseline; gap:8px; min-width: 0; }
+		.row { display:flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+		.badge { display:inline-flex; align-items:center; gap:6px; padding: 4px 10px; border-radius: 999px; border:1px solid var(--border); background: var(--panel-alt); font-size: clamp(10px, 1.8vw, 12px); color: var(--muted); }
+		.badge.ok { color: var(--accent-2); border-color: rgba(101,212,140,.35); }
+		.badge.warn { color: var(--warn); border-color: rgba(255,207,102,.35); }
+		.badge.err { color: var(--danger); border-color: rgba(255,107,107,.35); }
+		.btn { background: var(--accent); color: #08111e; border: none; border-radius: 10px; padding: clamp(8px, 1.8vw, 10px) clamp(10px, 2vw, 14px); font-weight: 700; cursor: pointer; box-shadow: 0 10px 28px rgba(74,163,255,.25); font-size: clamp(12px, 2vw, 14px); }
+		.btn:disabled { opacity: .6; cursor: not-allowed; }
+		.btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+		.btn-run { background: var(--accent-2); color: #062012; }
+		.btn-stop { background: var(--danger); color: #1f0b0b; }
+		.input, .select { background: var(--panel-alt); border:1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; min-width: 140px; font-size: clamp(12px, 2vw, 14px); user-select: text; -webkit-user-select: text; -ms-user-select: text; }
+		input, textarea { user-select: text; -webkit-user-select: text; -ms-user-select: text; }
+		.label { font-size: clamp(11px, 2vw, 12px); color: var(--muted); text-transform: uppercase; letter-spacing: .5px; display:flex; align-items:center; gap:6px; }
+		.help { display:inline-block; width:18px; height:18px; border-radius:50%; background: var(--panel-alt); border:1px solid var(--border); text-align:center; line-height:18px; font-size:12px; color: var(--muted); cursor:help; position:relative; flex: 0 0 auto; }
+		.help:hover::after { content: attr(data-tip); position:absolute; left: 22px; top: -2px; background:#0b0f16; border:1px solid var(--border); color: var(--text); padding:8px 10px; border-radius:8px; white-space: pre-wrap; width: min(260px, 70vw); z-index: 20; }
+		.form-grid { display:grid; grid-template-columns: repeat(4, minmax(180px, 1fr)); gap:12px; }
+		.stack { display:flex; flex-direction: column; gap: 6px; }
+		.table { width: 100%; border-collapse: collapse; }
+		.table th, .table td { border-bottom: 1px solid var(--border); padding: 8px 4px; font-size: clamp(11px, 2vw, 13px); color: var(--muted); }
+		pre { background: var(--panel-alt); border: 1px solid var(--border); padding: 12px; border-radius: 8px; overflow:auto; max-height: 420px; }
+		.footer { padding: 20px; color: var(--muted); text-align:center; font-size: clamp(10px, 2vw, 12px); }
+		/* Drag layers */
+		.layer { display:flex; gap:16px; flex-wrap: wrap; margin-bottom: 16px; }
+		.card.draggable { cursor: move; resize: both; overflow: auto; }
+		.drag-over { outline: 2px dashed var(--accent); }
+		.drag-disabled { cursor: not-allowed; }
+		/* KPI redesign */
+		.kpi { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; width: 100%; }
+		.kpi .chip { width: 100%; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02)); border: 1px solid var(--border); border-radius: 12px; padding: 18px; box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+		.kpi .label { color: var(--muted); font-size: clamp(10px, 1.8vw, 12px); text-transform: uppercase; letter-spacing: .5px; }
+		.kpi .value { font-size: clamp(18px, 4.5vw, 24px); font-weight: 800; margin-top: 6px; line-height: 1; }
+		.value.pos { color: var(--accent-2); }
+		.value.neg { color: var(--danger); }
+		.spark-wrap { display:flex; flex-direction: column; gap: 8px; }
+		.spark-legend { font-size: clamp(10px, 1.8vw, 12px); color: var(--muted); display:flex; justify-content: space-between; }
+		canvas { width: 100%; height: clamp(70px, 14vw, 100px); display:block; }
+		.hidden { display:none; }
+		/* Tablet */
+		@media (max-width: 900px) { .col-6, .col-5, .col-4, .col-3, .col-7, .col-8, .form-grid { grid-template-columns: repeat(2, minmax(160px, 1fr)); } .grid { gap: 12px; } }
+		/* Phone */
+		@media (max-width: 600px) {
+			.grid { display:block; }
+			.card { margin-bottom: 12px; }
+			.tabs { gap:6px; }
+			.input, .select { min-width: 0; width: 100%; }
+			.kv { gap:6px; }
+			.kpi { grid-template-columns: 1fr 1fr; }
+		}
+
+		/* Fancy sliders */
+		@keyframes sliderShimmer { 0% { background-position: 0% 0; } 100% { background-position: 200% 0; } }
+		@keyframes thumbPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(160,102,255,0.38); } 50% { box-shadow: 0 0 14px 6px rgba(160,102,255,0.22); } }
+		input[type="range"] {
+			-webkit-appearance: none;
+			appearance: none;
+			width: 100%;
+			height: 10px;
+			border-radius: 999px;
+			/* fallback track */
+			background: linear-gradient(90deg, rgba(160,102,255,0.22), rgba(120,70,220,0.18), rgba(160,102,255,0.22));
+			background-size: 200% 100%;
+			animation: sliderShimmer 4s linear infinite;
+			outline: none;
+			border: 1px solid rgba(160,102,255,0.35);
+			box-shadow: inset 0 2px 8px rgba(0,0,0,0.45), 0 4px 18px rgba(160,102,255,0.15);
+			/* dynamic fill will be applied inline by JS using background-image */
+		}
+		input[type="range"]:hover { filter: brightness(1.08); }
+		input[type="range"]:focus { box-shadow: 0 0 0 3px rgba(160,102,255,0.25), inset 0 2px 8px rgba(0,0,0,0.45); }
+		/* WebKit thumb */
+		input[type="range"]::-webkit-slider-thumb {
+			-webkit-appearance: none;
+			appearance: none;
+			width: 20px;
+			height: 20px;
+			border-radius: 50%;
+			background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0%, rgba(240,232,255,0.9) 40%, rgba(176,134,255,0.9) 41%, rgba(160,102,255,0.95) 70%, rgba(90,50,150,0.95) 100%);
+			border: 1px solid rgba(255,255,255,0.7);
+			box-shadow: 0 8px 20px rgba(160,102,255,0.5);
+			cursor: pointer;
+			margin-top: -6px; /* centers on 10px track */
+			animation: thumbPulse 2.8s ease-in-out infinite;
+		}
+		/* Explicit WebKit track styling (some engines ignore element background) */
+		input[type="range"]::-webkit-slider-runnable-track {
+			height: 10px;
+			border-radius: 999px;
+			background: linear-gradient(90deg, rgba(160,102,255,0.22), rgba(120,70,220,0.18), rgba(160,102,255,0.22));
+			border: 1px solid rgba(160,102,255,0.35);
+			box-shadow: inset 0 2px 8px rgba(0,0,0,0.45), 0 4px 18px rgba(160,102,255,0.15);
+		}
+		input[type="range"]:active::-webkit-slider-thumb {
+			transform: scale(1.08);
+			box-shadow: 0 10px 26px rgba(160,102,255,0.6);
+		}
+		/* Firefox */
+		input[type="range"]::-moz-range-track {
+			height: 10px;
+			border-radius: 999px;
+			background: linear-gradient(90deg, rgba(160,102,255,0.22), rgba(120,70,220,0.18), rgba(160,102,255,0.22));
+			border: 1px solid rgba(160,102,255,0.35);
+		}
+		input[type="range"]::-moz-range-thumb {
+			width: 20px;
+			height: 20px;
+			border-radius: 50%;
+			background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0%, rgba(240,232,255,0.9) 40%, rgba(176,134,255,0.9) 41%, rgba(160,102,255,0.95) 70%, rgba(90,50,150,0.95) 100%);
+			border: 1px solid rgba(255,255,255,0.7);
+			box-shadow: 0 8px 20px rgba(160,102,255,0.5);
+			cursor: pointer;
+		}
+		/* Legacy MS Edge/IE track and thumb */
+		input[type="range"]::-ms-track {
+			height: 10px;
+			border-radius: 999px;
+			background: transparent;
+			border-color: transparent;
+			color: transparent;
+		}
+		input[type="range"]::-ms-fill-lower,
+		input[type="range"]::-ms-fill-upper {
+			background: linear-gradient(90deg, rgba(160,102,255,0.22), rgba(120,70,220,0.18), rgba(160,102,255,0.22));
+			border: 1px solid rgba(160,102,255,0.35);
+			border-radius: 999px;
+		}
+		input[type="range"]::-ms-thumb {
+			width: 20px;
+			height: 20px;
+			border-radius: 50%;
+			background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0%, rgba(240,232,255,0.9) 40%, rgba(176,134,255,0.9) 41%, rgba(160,102,255,0.95) 70%, rgba(90,50,150,0.95) 100%);
+			border: 1px solid rgba(255,255,255,0.7);
+			box-shadow: 0 8px 20px rgba(160,102,255,0.5);
+			cursor: pointer;
+		}
+		input[type="range"]:disabled { filter: grayscale(0.6); opacity: .7; cursor: not-allowed; }
+		input[type="range"]:disabled::-webkit-slider-thumb { cursor: not-allowed; }
+	</style>
+	<style id="user-css"></style>
+</head>
+<body>
+	<div class="header">
+		<div class="brand">
+			<div class="logo"></div>
+			<h1>HERFOO_TRADES <span class="small">Live Dashboard</span></h1>
+		</div>
+		<div class="row small">
+			<span id="entry-badge" class="badge">entry: -</span>
+			<span id="exit-badge" class="badge">exit: -</span>
+			<span id="source-status" class="badge">source: -</span>
+			<span id="refresh-status" class="badge">refreshing...</span>
+		</div>
+	</div>
+	<div class="container">
+		<div class="tabs">
+			<div id="tab-overview" class="tab active">Overview</div>
+			<div id="tab-logs" class="tab">Logs</div>
+			<div id="tab-rules" class="tab">Rules</div>
+			<div id="tab-status" class="tab hidden">Status</div>
+			<div id="tab-auth" class="tab hidden">Authentication</div>
+		</div>
+
+		<!-- Overview Panel -->
+		<div id="panel-overview">
+			<div class="layer drag-container" id="layer-top">
+				<div class="card draggable" data-card-id="symbol" draggable="true" style="flex:1 1 380px;">
+					<h3>Symbol (edit and save)</h3>
+					<div class="row">
+						<input id="symbol-input" class="input" placeholder="RELIANCE|RELIANCE" />
+						<button id="btn-save-symbol" class="btn btn-outline">Save</button>
+						<span id="symbol-status" class="small"></span>
+					</div>
+				</div>
+				<div class="card metric draggable" data-card-id="ltp" draggable="true" style="flex:1 1 240px;"><h3>LTP</h3><div class="metric-body"><div class="kv"><div id="ltp" class="big">-</div><span class="badge" id="ltp-change">-</span></div></div></div>
+				<div class="card metric draggable" data-card-id="capacity" draggable="true" style="flex:1 1 240px;"><h3>Capacity</h3><div class="metric-body"><div class="big" id="max-qty">-</div><div class="small">Max per trade</div></div></div>
+				<div class="card metric draggable" data-card-id="pnl" draggable="true" style="flex:1 1 240px;"><h3>PnL / Trades</h3><div class="metric-body"><div class="chip"><div class="label">Total PnL</div><div class="value" id="total-pnl">-</div></div><div class="chip"><div class="label">Today</div><div class="value" id="trades-today">0</div></div></div></div>
+			</div>
+
+			<div class="layer drag-container" id="layer-bottom">
+				<div class="card draggable" data-card-id="controls" draggable="true" style="flex:2 1 520px;">
+					<h3>Controls</h3>
+					<div class="row">
+						<button id="btn-toggle" class="btn">Start Trader</button>
+						<button id="btn-flatten" class="btn btn-outline">Flatten (Sell Market)</button>
+						<button id="btn-refresh" class="btn btn-outline">Refresh</button>
+						<span id="action-status" class="small"></span>
+					</div>
+				</div>
+				<div class="card draggable" data-card-id="trend" draggable="true" style="flex:1 1 360px;">
+					<h3>Trend</h3>
+					<div class="spark-wrap">
+						<canvas id="spark"></canvas>
+						<div class="spark-legend"><span id="spark-left">—</span><span id="spark-mid">—</span><span id="spark-right">—</span></div>
+					</div>
+				</div>
+				<div class="card draggable" data-card-id="daychart" draggable="true" style="flex:1 1 100%;">
+					<h3>One-Day Chart</h3>
+					<div class="row" style="margin-bottom:8px;">
+						<button id="btn-zoom-in" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Zoom In</button>
+						<button id="btn-zoom-out" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Zoom Out</button>
+						<button id="btn-reset-zoom" class="btn btn-outline" style="padding:4px 8px; font-size:12px;">Reset</button>
+						<span id="chart-info" class="small"></span>
+					</div>
+					<canvas id="day-chart" style="height:220px; width:100%; cursor: crosshair;"></canvas>
+				</div>
+			</div>
+		</div>
+
+		<!-- Logs Panel -->
+		<div id="panel-logs" class="hidden">
+			<div class="card col-12">
+				<h3>Logs</h3>
+				<div class="row">
+					<button id="btn-download-logs" class="btn btn-outline">Download Logs</button>
+					<button id="btn-clear-logs" class="btn btn-outline">Clear Logs</button>
+					<span id="logs-status" class="small"></span>
+				</div>
+				<pre id="logs">Waiting...</pre>
+			</div>
+			<div class="card col-12" style="margin-top:12px;">
+				<h3>API Logs</h3>
+				<div class="row">
+					<input id="api-log-file" class="input" value="apiLogs_1305.log" />
+					<input id="api-log-limit" class="input" type="number" min="1" step="1" value="20" style="width:100px;" />
+					<button id="btn-load-api-logs" class="btn btn-outline">Load API Logs</button>
+					<span id="api-logs-status" class="small"></span>
+				</div>
+				<pre id="api-logs">Waiting...</pre>
+			</div>
+		</div>
+
+		<!-- Rules Panel -->
+		<div id="panel-rules" class="hidden">
+			<div class="card col-12">
+				<h3>Rules (editable)</h3>
+				<div class="row" style="margin-bottom:8px;">
+					<span class="label">World Clock</span>
+					<select id="tz-select" class="select"></select>
+					<span class="small" id="tz-converted">IST: -</span>
+				</div>
+				<div class="form-grid" id="rules-form">
+					<div class="stack"><span class="label">show_day_chart <span class="help" data-tip="Toggle the One-Day candlestick chart on the Overview page.">?</span></span><select id="f-show_day_chart" class="select"><option value="true">true</option><option value="false">false</option></select></div>
+					<div class="stack"><span class="label">exchange_code <span class="help" data-tip="Exchange to trade on (e.g., NSE).">?</span></span><input id="f-exchange_code" class="input" /></div>
+					<div class="stack"><span class="label">quantity <span class="help" data-tip="Shares per order. Bot holds only one position at a time.">?</span></span><input id="f-quantity" type="number" step="1" class="input" /></div>
+					<div class="stack"><span class="label">buy_drop_pct <span class="help" data-tip="Buy when price drops at least this percentage from recent high.">?</span></span><input id="f-buy_drop_pct" type="number" step="0.0001" class="input" /></div>
+					<div class="stack"><span class="label">buy_drop_abs <span class="help" data-tip="Buy when price falls this rupee amount from recent high.">?</span></span><input id="f-buy_drop_abs" type="number" step="0.01" class="input" /></div>
+					<div class="stack"><span class="label">take_profit_pct <span class="help" data-tip="Sell when percent profit meets/exceeds this value.">?</span></span><input id="f-take_profit_pct" type="number" step="0.0001" class="input" /></div>
+					<div class="stack"><span class="label">take_profit_abs <span class="help" data-tip="Sell when rupee profit per share meets/exceeds this value.">?</span></span><input id="f-take_profit_abs" type="number" step="0.01" class="input" /></div>
+					<div class="stack"><span class="label">stop_loss_pct <span class="help" data-tip="Sell when percent loss reaches this value.">?</span></span><input id="f-stop_loss_pct" type="number" step="0.0001" class="input" /></div>
+					<div class="stack"><span class="label">poll_interval_sec <span class="help" data-tip="Seconds between price checks.">?</span></span><input id="f-poll_interval_sec" type="number" step="1" class="input" /></div>
+					<div class="stack"><span class="label">quote_source <span class="help" data-tip="auto/yf uses public feeds first; breeze uses Breeze quotes.">?</span></span>
+						<select id="f-quote_source" class="select"><option value="auto">auto</option><option value="yf">yf</option><option value="breeze">breeze</option></select>
+					</div>
+					<div class="stack"><span class="label">debug <span class="help" data-tip="Prints diagnostic lines explaining buy/sell decisions.">?</span></span><select id="f-debug" class="select"><option value="true">true</option><option value="false">false</option></select></div>
+					<div class="stack"><span class="label">min_warmup_samples <span class="help" data-tip="How many prices to collect before evaluating entries (unless immediate buy).">?</span></span><input id="f-min_warmup_samples" type="number" step="1" class="input" /></div>
+					<div class="stack"><span class="label">buy_immediate_on_start <span class="help" data-tip="Buy once immediately when starting, as soon as a price is available.">?</span></span><select id="f-buy_immediate_on_start" class="select"><option value="true">true</option><option value="false">false</option></select></div>
+					<div class="stack"><span class="label">buy_mode <span class="help" data-tip="drop_from_high: look for pullbacks; below_sma: price below moving average threshold.">?</span></span><select id="f-buy_mode" class="select"><option value="drop_from_high">drop_from_high</option><option value="below_sma">below_sma</option></select></div>
+					<div class="stack"><span class="label">sma_window <span class="help" data-tip="Window size for SMA when using below_sma mode.">?</span></span><input id="f-sma_window" type="number" step="1" class="input" /></div>
+					<div class="stack"><span class="label">sma_drop_pct <span class="help" data-tip="Percent below SMA required to buy in below_sma mode.">?</span></span><input id="f-sma_drop_pct" type="number" step="0.0001" class="input" /></div>
+					<div class="stack"><span class="label">market_tz <span class="help" data-tip="Your local timezone. Times are converted to India market internally.">?</span></span><input id="f-market_tz" class="input" /></div>
+					<div class="stack"><span class="label">market_open <span class="help" data-tip="Local open time HH:MM. Will be converted to IST for checks.">?</span></span><input id="f-market_open" class="input" /></div>
+					<div class="stack"><span class="label">market_close <span class="help" data-tip="Local close time HH:MM. Will be converted to IST for checks.">?</span></span><input id="f-market_close" class="input" /></div>
+					<div class="stack"><span class="label">market_buffer_min <span class="help" data-tip="Minutes before close when new entries are blocked.">?</span></span><input id="f-market_buffer_min" type="number" step="1" class="input" /></div>
+				</div>
+				<div class="row" style="margin-top:12px;">
+					<span id="rules-status" class="small">Autosaved</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Status Panel (debug only) -->
+		<div id="panel-status" class="hidden">
+			<div class="card col-12">
+				<h3>Status</h3>
+				<div class="row">
+					<button id="btn-reset-state" class="btn btn-outline">Reset Data</button>
+					<span id="status-msg" class="small"></span>
+				</div>
+				<pre id="status-json">Loading...</pre>
+			</div>
+		</div>
+
+		<!-- Authentication Panel (debug only) -->
+		<div id="panel-auth" class="hidden">
+			<div class="card col-12">
+				<h3>Authentication</h3>
+				<div class="form-grid">
+					<div class="stack">
+						<span class="label">API Key</span>
+						<div style="position:relative; width:100%;">
+							<input id="cred-api-key" type="password" class="input" placeholder="••••••" style="padding-right:34px;" />
+							<button id="toggle-api-key" class="btn btn-outline" style="position:absolute; right:6px; top:50%; transform: translateY(-50%); padding:4px 6px; min-width:auto;" title="Show">
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+									<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" stroke-width="2" fill="none"/>
+									<circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+								</svg>
+							</button>
+						</div>
+					</div>
+					<div class="stack">
+						<span class="label">API Secret</span>
+						<div style="position:relative; width:100%;">
+							<input id="cred-api-secret" type="password" class="input" placeholder="••••••" style="padding-right:34px;" />
+							<button id="toggle-api-secret" class="btn btn-outline" style="position:absolute; right:6px; top:50%; transform: translateY(-50%); padding:4px 6px; min-width:auto;" title="Show">
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+									<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" stroke-width="2" fill="none"/>
+									<circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+								</svg>
+							</button>
+						</div>
+					</div>
+					<div class="stack"><span class="label">Session Token</span><input id="cred-session-token" class="input" placeholder="session token" /></div>
+				</div>
+				<div class="row" style="margin-top:12px;">
+					<button id="btn-save-creds" class="btn">Save Credentials</button>
+					<span id="creds-status" class="small"></span>
+				</div>
+			</div>
+		</div>
+
+		<div class="footer">HERFOO_TRADES • Live orders only • Keep quantity sensible</div>
+	</div>
+
+	<script>
+	let lastLtp = null; let series = []; let traderStatus = 'stopped'; let cachedLogs = [];
+	let activeTab = 'overview';
+	let cachedRules = null; let cachedRulesAt = 0;
+	let fastTick = null; let slowTick = null; let fastBusy = false; let slowBusy = false;
+	let chartLoaded = false; // Prevent multiple chart loads
+	async function fetchJSON(url, options) { const r = await fetch(url, options); if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }
+	function badge(el, cls, text){ el.className = `badge ${cls}`; el.textContent = text; }
+	function styleToggleButton() { const btn = document.getElementById('btn-toggle'); if (traderStatus === 'running') { btn.textContent = 'Stop Trader'; btn.classList.remove('btn-run'); btn.classList.add('btn-stop'); } else { btn.textContent = 'Start Trader'; btn.classList.remove('btn-stop'); btn.classList.add('btn-run'); } }
+	function formatHM(d){ const h=d.getHours().toString().padStart(2,'0'); const m=d.getMinutes().toString().padStart(2,'0'); const s=d.getSeconds().toString().padStart(2,'0'); return `${h}:${m}:${s}`; }
+	function drawSpark() {
+		const canvas = document.getElementById('spark'); if (!canvas) return; const ctx = canvas.getContext('2d');
+		const w = canvas.clientWidth, h = canvas.clientHeight; canvas.width = w * devicePixelRatio; canvas.height = h * devicePixelRatio; ctx.scale(devicePixelRatio, devicePixelRatio);
+		ctx.clearRect(0,0,w,h);
+		if (series.length < 2) { document.getElementById('spark-left').textContent='—'; document.getElementById('spark-mid').textContent='—'; document.getElementById('spark-right').textContent='—'; return; }
+		const values = series.map(p=>p.v); const times = series.map(p=>p.t.getTime());
+		const minV = Math.min(...values), maxV = Math.max(...values); const minT = times[0], maxT = times[times.length-1];
+		const padX=38, padY=8; const plotW = w - padX - 8, plotH = h - padY - 20;
+		const xOf = (t)=> padX + plotW * ((t - minT) / Math.max(maxT - minT, 1));
+		const yOf = (v)=> padY + (plotH) * (1 - (v - minV) / Math.max(maxV - minV, 0.0001));
+		// grid
+		ctx.strokeStyle='#1f2533'; ctx.lineWidth=1; ctx.setLineDash([2,2]);
+		for (let i=0;i<=4;i++){ const y = padY + (plotH/4)*i; ctx.beginPath(); ctx.moveTo(padX, y); ctx.lineTo(w-8,y); ctx.stroke(); }
+		ctx.setLineDash([]);
+		// price line
+		ctx.lineWidth=2; const up = values[values.length-1] >= values[0]; ctx.strokeStyle = up ? '#65d48c' : '#ff6b6b'; ctx.beginPath(); values.forEach((v,i)=>{ const x=xOf(times[i]), y=yOf(v); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }); ctx.stroke();
+		// fill
+		const grad = ctx.createLinearGradient(0,padY,0,padY+plotH); grad.addColorStop(0, up ? 'rgba(101,212,140,0.25)' : 'rgba(255,107,107,0.25)'); grad.addColorStop(1,'rgba(0,0,0,0)'); ctx.lineTo(xOf(times[times.length-1]), padY+plotH); ctx.lineTo(xOf(times[0]), padY+plotH); ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+		// simple linear prediction over last N points
+		const N = Math.min(series.length, 30); const xs = times.slice(-N).map(t=> (t - times[times.length-1]) / 1000); const ys = values.slice(-N);
+		let sumX=0,sumY=0,sumXY=0,sumXX=0; for(let i=0;i<xs.length;i++){ sumX+=xs[i]; sumY+=ys[i]; sumXY+=xs[i]*ys[i]; sumXX+=xs[i]*xs[i]; }
+		const denom = (N*sumXX - sumX*sumX) || 1; const a = (N*sumXY - sumX*sumY)/denom; const b = (sumY - a*sumX)/N; // y = a*x + b
+		// extrapolate next 10 points at 4s steps
+		const step=4; const fut=10; ctx.strokeStyle = 'var(--pred)'; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.beginPath(); for(let i=1;i<=fut;i++){ const xSec = i*step; const yVal = a*(xSec) + b; const x = xOf(times[times.length-1] + xSec*1000); const y = yOf(yVal); if(i===1) ctx.moveTo(xOf(times[times.length-1]), yOf(values[values.length-1])), ctx.lineTo(x,y); else ctx.lineTo(x,y); } ctx.stroke(); ctx.setLineDash([]);
+		// axes labels
+		ctx.fillStyle='#7e8896'; ctx.font='11px Segoe UI, Arial'; ctx.textAlign='left'; ctx.fillText(maxV.toFixed(2), 4, padY+8); ctx.fillText(minV.toFixed(2), 4, padY+plotH);
+		ctx.textAlign='center'; const leftTs=new Date(minT), rightTs=new Date(maxT); const midTs=new Date((minT+maxT)/2);
+		document.getElementById('spark-left').textContent = `${leftTs.toLocaleDateString()} ${formatHM(leftTs)}`;
+		document.getElementById('spark-mid').textContent = `${formatHM(midTs)}`;
+		document.getElementById('spark-right').textContent = `${rightTs.toLocaleDateString()} ${formatHM(rightTs)}`;
+	}
+	function updateKPIs(state) { const pnlEl = document.getElementById('total-pnl'); const pnl = Number(state.total_pnl ?? 0); pnlEl.textContent = pnl.toFixed(2); pnlEl.className = `value ${pnl > 0 ? 'pos' : (pnl < 0 ? 'neg' : '')}`; }
+	function intelligenceBadges(rules, state) { const entry = document.getElementById('entry-badge'); const exitb = document.getElementById('exit-badge'); if (series.length < 3) { badge(entry,'','neutral'); badge(exitb,'','no position'); return; } const recentHigh = Math.max(...series.map(p=>p.v)); const last = series[series.length-1].v; const dropAbs = recentHigh - last; const dropPct = dropAbs / (recentHigh || 1); let entryHint = 'entry unlikely'; let entryCls=''; if ((rules.buy_drop_abs && dropAbs >= rules.buy_drop_abs) || (rules.buy_drop_pct && dropPct >= rules.buy_drop_pct)) { entryHint='entry likely'; entryCls='ok'; } badge(entry, entryCls, entryHint); const pos = state.position; if (pos && pos.avg_price != null) { const pnlAbs = last - Number(pos.avg_price); const pnlPct = pnlAbs / (Number(pos.avg_price) || 1); let exitHint='hold', exitCls=''; if ((rules.take_profit_abs && pnlAbs >= rules.take_profit_abs) || (rules.take_profit_pct && pnlPct >= rules.take_profit_pct)) { exitHint='exit likely'; exitCls='ok'; } else if (rules.stop_loss_pct && pnlPct <= -Number(rules.stop_loss_pct)) { exitHint='risk high'; exitCls='warn'; } badge(exitb, exitCls, exitHint); } else { badge(exitb, '', 'no position'); } }
+
+	async function loadSymbol() { try { const s = await fetchJSON('/api/symbol'); document.getElementById('symbol-input').value = s.symbol_line || ''; } catch (e) { document.getElementById('symbol-status').textContent = `Load error: ${e.message}`; } }
+	async function saveSymbol() { try { const v = document.getElementById('symbol-input').value.trim(); await fetchJSON('/api/symbol', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({symbol_line: v})}); document.getElementById('symbol-status').textContent = 'Saved'; } catch (e) { document.getElementById('symbol-status').textContent = `Save error: ${e.message}`; } }
+
+	function setFormValues(cfg){ const map = { "f-show_day_chart": String(cfg.show_day_chart), "f-exchange_code": cfg.exchange_code, "f-quantity": cfg.quantity, "f-buy_drop_pct": cfg.buy_drop_pct, "f-buy_drop_abs": cfg.buy_drop_abs, "f-take_profit_pct": cfg.take_profit_pct, "f-take_profit_abs": cfg.take_profit_abs, "f-stop_loss_pct": cfg.stop_loss_pct, "f-poll_interval_sec": cfg.poll_interval_sec, "f-quote_source": cfg.quote_source, "f-debug": String(cfg.debug), "f-min_warmup_samples": cfg.min_warmup_samples, "f-buy_immediate_on_start": String(cfg.buy_immediate_on_start), "f-buy_mode": cfg.buy_mode, "f-sma_window": cfg.sma_window, "f-sma_drop_pct": cfg.sma_drop_pct, "f-market_tz": cfg.market_tz, "f-market_open": cfg.market_open, "f-market_close": cfg.market_close, "f-market_buffer_min": cfg.market_buffer_min, }; Object.entries(map).forEach(([id, val])=>{ const el = document.getElementById(id); if (el) el.value = (val ?? ''); }); const showDay = Boolean(cfg && (cfg.show_day_chart === true || cfg.show_day_chart === 'true')); const dayCard = document.querySelector('[data-card-id="daychart"]'); if(dayCard){ dayCard.style.display = showDay ? '' : 'none'; if(!showDay){ chartLoaded = false; const c = document.getElementById('day-chart'); if(c){ const ctx = c.getContext('2d'); if(ctx){ ctx.clearRect(0,0,c.width,c.height); } } } } }
+	function collectFormValues(){ const getNum = (id)=>{ const v = document.getElementById(id).value; return v === '' ? undefined : Number(v); }; const getStr = (id)=>{ const v = document.getElementById(id).value; return v === '' ? undefined : v; }; const getBool = (id)=> document.getElementById(id).value === 'true'; return { show_day_chart: getBool('f-show_day_chart'), exchange_code: getStr('f-exchange_code'), quantity: getNum('f-quantity'), buy_drop_pct: getNum('f-buy_drop_pct'), buy_drop_abs: getNum('f-buy_drop_abs'), take_profit_pct: getNum('f-take_profit_pct'), take_profit_abs: getNum('f-take_profit_abs'), stop_loss_pct: getNum('f-stop_loss_pct'), poll_interval_sec: getNum('f-poll_interval_sec'), quote_source: getStr('f-quote_source'), debug: getBool('f-debug'), min_warmup_samples: getNum('f-min_warmup_samples'), buy_immediate_on_start: getBool('f-buy_immediate_on_start'), buy_mode: getStr('f-buy_mode'), sma_window: getNum('f-sma_window'), sma_drop_pct: getNum('f-sma_drop_pct'), market_tz: getStr('f-market_tz'), market_open: getStr('f-market_open'), market_close: getStr('f-market_close'), market_buffer_min: getNum('f-market_buffer_min'), }; }
+	async function loadRules(){ try { const cfg = await fetchJSON('/api/rules'); setFormValues(cfg); } catch(e){ document.getElementById('rules-status').textContent = `Load error: ${e.message}`; } }
+	async function saveRules(){ try { const payload = collectFormValues(); await fetchJSON('/api/rules', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) }); document.getElementById('rules-status').textContent = 'Saved'; } catch(e){ document.getElementById('rules-status').textContent = `Save error: ${e.message}`; } }
+	// Wrap saveRules with status handling
+	const _saveRulesCore = saveRules;
+	saveRules = async function(){
+		showRulesSaving();
+		try {
+			await _saveRulesCore();
+			showRulesSaved();
+			const fresh = await fetchJSON('/api/rules');
+			const debugOn = Boolean(fresh && (fresh.debug === true || fresh.debug === 'true'));
+			setDragEnabled(debugOn);
+			toggleStatusTab(debugOn);
+			toggleAuthTab(debugOn);
+			const showDay = Boolean(fresh && (fresh.show_day_chart === true || fresh.show_day_chart === 'true'));
+			const dayCard = document.querySelector('[data-card-id="daychart"]');
+			if(dayCard){ dayCard.style.display = showDay ? '' : 'none'; }
+			if(debugOn){ loadCreds(); }
+			enforceVisibleTab();
+		} catch(e){
+			const el = document.getElementById('rules-status');
+			if(el){ el.style.fontStyle='normal'; el.textContent = `Save error: ${e.message}`; el.style.display='inline'; }
+		}
+	};
+
+	function populateTimezones(){ const sel = document.getElementById('tz-select'); const zones = ['Asia/Kolkata','UTC','America/New_York','Europe/London','Europe/Berlin','Asia/Dubai','Asia/Singapore','Asia/Tokyo','Australia/Sydney']; zones.forEach(z=>{ const o=document.createElement('option'); o.value=z; o.textContent=z; sel.appendChild(o); }); sel.value = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; updateTzPreview(); sel.addEventListener('change', updateTzPreview); ['f-market_open','f-market_close'].forEach(id=>{ document.getElementById(id).addEventListener('input', updateTzPreview); }); }
+	async function updateTzPreview(){ try { const tz = document.getElementById('tz-select').value; const open = document.getElementById('f-market_open').value || '09:15'; const close = document.getElementById('f-market_close').value || '15:30'; const a = await fetchJSON(`/api/convert_time?from_tz=${encodeURIComponent(tz)}&hhmm=${encodeURIComponent(open)}&to_tz=Asia/Kolkata`); const b = await fetchJSON(`/api/convert_time?from_tz=${encodeURIComponent(tz)}&hhmm=${encodeURIComponent(close)}&to_tz=Asia/Kolkata`); document.getElementById('tz-converted').textContent = `IST: ${a.output} - ${b.output}`; document.getElementById('f-market_tz').value = tz; } catch(e){ document.getElementById('tz-converted').textContent = 'IST: -'; }
+	}
+
+	function setActiveTab(tab){ const tOver = document.getElementById('tab-overview'); const tLogs = document.getElementById('tab-logs'); const tRules = document.getElementById('tab-rules'); const tStatus = document.getElementById('tab-status'); const tAuth = document.getElementById('tab-auth'); const pOver = document.getElementById('panel-overview'); const pLogs = document.getElementById('panel-logs'); const pRules = document.getElementById('panel-rules'); const pStatus = document.getElementById('panel-status'); const pAuth = document.getElementById('panel-auth'); [tOver,tLogs,tRules,tStatus,tAuth].forEach(el=>el.classList.remove('active')); [pOver,pLogs,pRules,pStatus,pAuth].forEach(el=>el.classList.add('hidden')); if (tab==='overview'){ tOver.classList.add('active'); pOver.classList.remove('hidden'); const shouldShow = (document.getElementById('f-show_day_chart')?.value === 'true'); document.querySelector('[data-card-id="daychart"]').style.display = shouldShow ? '' : 'none'; } else if (tab==='logs'){ tLogs.classList.add('active'); pLogs.classList.remove('hidden'); } else if (tab==='rules'){ tRules.classList.add('active'); pRules.classList.remove('hidden'); } else if (tab==='status'){ tStatus.classList.add('active'); pStatus.classList.remove('hidden'); } else if (tab==='auth'){ tAuth.classList.add('active'); pAuth.classList.remove('hidden'); }
+		activeTab = tab;
+		// Force refresh when switching key tabs
+		if (tab === 'overview' || tab === 'logs') { try { refreshAll(); } catch(e){} }
+		// Load chart only when overview tab is active and not already loaded
+		if (tab === 'overview' && !chartLoaded) { try { drawDayChart(); } catch(e){} }
+	}
+	function toggleStatusTab(visible){ document.getElementById('tab-status').classList.toggle('hidden', !visible); }
+	function toggleAuthTab(visible){ document.getElementById('tab-auth').classList.toggle('hidden', !visible); }
+	function enforceVisibleTab(){
+		const active = document.querySelector('.tabs .tab.active');
+		if(!active || active.classList.contains('hidden')){
+			setActiveTab('overview');
+			document.getElementById('panel-overview').classList.remove('hidden');
+			document.getElementById('panel-logs').classList.add('hidden');
+			document.getElementById('panel-rules').classList.add('hidden');
+			document.getElementById('panel-status').classList.add('hidden');
+			document.getElementById('panel-auth').classList.add('hidden');
+		}
+	}
+
+	// Persist and restore layout
+	let dragEnabled = true;
+	function saveLayout(){
+		const layers = ['layer-top','layer-bottom'];
+		const order = {};
+		layers.forEach(id=>{
+			const layer = document.getElementById(id);
+			order[id] = [...layer.querySelectorAll('.draggable')].map(el=> el.getAttribute('data-card-id'));
+		});
+		const sizes = {};
+		document.querySelectorAll('.draggable').forEach(el=>{
+			const id = el.getAttribute('data-card-id');
+			if (!id) return;
+			sizes[id] = { width: el.style.width || '', height: el.style.height || '', flex: el.style.flex || '' };
+		});
+		localStorage.setItem('dashboardLayout', JSON.stringify({order, sizes}));
+		applyUserStyles(sizes);
+	}
+	function applyUserStyles(sizes){
+		const styleEl = document.getElementById('user-css');
+		let css = '';
+		Object.entries(sizes || {}).forEach(([id, s])=>{
+			css += `[data-card-id="${id}"]{${s.width?`width:${s.width};`:''}${s.height?`height:${s.height};`:''}${s.flex?`flex:${s.flex};`:''}}\n`;
+		});
+		styleEl.textContent = css;
+	}
+	function restoreLayout(){
+		try{
+			const saved = JSON.parse(localStorage.getItem('dashboardLayout') || '{}');
+			if(saved.order){
+				Object.entries(saved.order).forEach(([layerId, arr])=>{
+					const layer = document.getElementById(layerId);
+					arr.forEach(cardId=>{
+						const el = document.querySelector(`[data-card-id="${cardId}"]`);
+						if (el) layer.appendChild(el);
+					});
+				});
+			}
+			if(saved.sizes){ applyUserStyles(saved.sizes); }
+		}catch{}
+	}
+
+	// Drag and drop enablement
+	function enableDrag(container){
+		const root = document.querySelector(container);
+		if(!root) return;
+		root.addEventListener('dragstart', (e)=>{
+			if (!dragEnabled) { e.preventDefault(); return; }
+			const card = e.target.closest('.draggable');
+			if(!card) return; card.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain','');
+		});
+		root.addEventListener('dragend', ()=>{ if(!dragEnabled) return; document.querySelectorAll('.dragging').forEach(c=>c.classList.remove('dragging')); saveLayout(); });
+		root.addEventListener('dragover', (e)=>{
+			if (!dragEnabled) return; e.preventDefault();
+			const dragging = document.querySelector('.dragging'); if(!dragging) return;
+			const after = [...root.querySelectorAll('.draggable:not(.dragging)')].reduce((closest, child)=>{
+				const rect = child.getBoundingClientRect();
+				const offset = e.clientY - rect.top - rect.height/2;
+				if(offset < 0 && offset > closest.offset) return {offset, element: child};
+				return closest;
+			}, {offset: Number.NEGATIVE_INFINITY}).element;
+			if(after==null) root.appendChild(dragging); else root.insertBefore(dragging, after);
+		});
+	}
+	// enable for both layers
+	enableDrag('#layer-top');
+	enableDrag('#layer-bottom');
+
+	function setDragEnabled(enabled){
+		dragEnabled = !!enabled;
+		document.querySelectorAll('.draggable').forEach(el=>{
+			el.setAttribute('draggable', dragEnabled ? 'true' : 'false');
+			el.style.resize = dragEnabled ? 'both' : 'none';
+			el.style.cursor = dragEnabled ? 'move' : 'default';
+		});
+	}
+
+	let rulesStatusTimer = null;
+	function showRulesSaving(){ const el = document.getElementById('rules-status'); if(!el) return; el.style.fontStyle='italic'; el.textContent='Saving…'; el.style.display='inline'; clearTimeout(rulesStatusTimer); }
+	function showRulesSaved(){ const el = document.getElementById('rules-status'); if(!el) return; el.style.fontStyle='normal'; el.textContent='Saved'; el.style.display='inline'; clearTimeout(rulesStatusTimer); rulesStatusTimer = setTimeout(()=>{ hideRulesStatus(); }, 20000); }
+	function hideRulesStatus(){ const el = document.getElementById('rules-status'); if(!el) return; el.style.display='none'; }
+
+	async function refreshAll() {
+		const refreshEl = document.getElementById('refresh-status'); badge(refreshEl, 'warn', 'refreshing...');
+		try {
+			// cache rules for 30s
+			let rules;
+			const nowTs = Date.now();
+			if (!cachedRules || (nowTs - cachedRulesAt) > 30000) {
+				rules = await fetchJSON('/api/rules');
+				cachedRules = rules; cachedRulesAt = nowTs;
+			} else { rules = cachedRules; }
+			// build parallel fetches based on active tab
+			const fetches = [fetchJSON('/api/state'), fetchJSON('/api/trader/status')];
+			if (activeTab === 'logs') fetches.push(fetchJSON('/api/trader/logs?limit=600'));
+			const results = await Promise.all(fetches);
+			const state = results[0]; const tstat = results[1]; const tlogs = (activeTab === 'logs') ? results[2] : null;
+			// Toggle Status tab based on debug flag
+			toggleStatusTab(Boolean(rules && (rules.debug === true || rules.debug === 'true')));
+			document.getElementById('max-qty').textContent = state.max_quantity_per_trade ?? rules.quantity ?? '-';
+			updateKPIs(state);
+			document.getElementById('trades-today').textContent = state.trades_today ?? 0;
+			badge(document.getElementById('source-status'), '', `source: ${rules.quote_source}`);
+			traderStatus = tstat.status || 'stopped'; styleToggleButton(); intelligenceBadges(rules, state);
+			if (tlogs) { cachedLogs = (tlogs.lines || []); document.getElementById('logs').textContent = cachedLogs.join('\n'); }
+			badge(refreshEl, 'ok', 'up to date');
+			// Don't auto-load chart on every refresh - only when overview tab is active
+		} catch (e) { console.log('Refresh error', e); badge(refreshEl, 'err', 'error'); }
+	}
+
+	async function refreshLtpFast() {
+		if (fastBusy) return; fastBusy = true;
+		try {
+			const ltp = await fetchJSON('/api/ltp');
+			if (ltp && ltp.ltp != null) {
+				const now = new Date();
+				if (lastLtp != null) {
+					const diff = Number(ltp.ltp) - Number(lastLtp);
+					const diffEl = document.getElementById('ltp-change');
+					const sign = diff > 0 ? '+' : '';
+					badge(diffEl, diff > 0 ? 'ok' : (diff < 0 ? 'err' : ''), `${sign}${diff.toFixed(2)}`);
+				}
+				lastLtp = ltp.ltp;
+				document.getElementById('ltp').textContent = ltp.ltp;
+				series.push({t: now, v: Number(ltp.ltp)});
+				if (series.length > 180) series.shift();
+				drawSpark();
+			}
+		} catch (e) { /* ignore transient errors */ }
+		finally { fastBusy = false; }
+	}
+
+	async function refreshStatus(){ try { const s = await fetchJSON('/api/status'); document.getElementById('status-json').textContent = JSON.stringify(s, null, 2); } catch(e){ document.getElementById('status-json').textContent = `Load error: ${e.message}`; } }
+	async function resetStatus(){ try { const s = await fetchJSON('/api/status/reset', {method:'POST'}); document.getElementById('status-json').textContent = JSON.stringify(s, null, 2); document.getElementById('status-msg').textContent = 'State reset'; } catch(e){ document.getElementById('status-msg').textContent = `Reset error: ${e.message}`; } }
+
+	document.getElementById('tab-overview').addEventListener('click', ()=>setActiveTab('overview'));
+	document.getElementById('tab-logs').addEventListener('click', ()=>{ setActiveTab('logs'); refreshAll(); try { loadApiLogs(); } catch(e){} });
+	document.getElementById('tab-rules').addEventListener('click', ()=>setActiveTab('rules'));
+	document.getElementById('tab-status').addEventListener('click', ()=>{ setActiveTab('status'); refreshStatus(); });
+	document.getElementById('tab-auth').addEventListener('click', ()=>{ setActiveTab('auth'); loadCreds(); wirePasswordToggle('cred-api-key','toggle-api-key'); wirePasswordToggle('cred-api-secret','toggle-api-secret'); document.getElementById('panel-overview').classList.add('hidden'); document.getElementById('panel-logs').classList.add('hidden'); document.getElementById('panel-rules').classList.add('hidden'); document.getElementById('panel-status').classList.add('hidden'); document.getElementById('panel-auth').classList.remove('hidden'); });
+	document.getElementById('btn-reset-state').addEventListener('click', resetStatus);
+	document.getElementById('btn-toggle').addEventListener('click', async () => { try { document.getElementById('action-status').textContent = '...'; if (traderStatus === 'running') { await fetchJSON('/api/trader/stop', {method:'POST'}); traderStatus = 'stopped'; } else { await fetchJSON('/api/trader/start', {method:'POST'}); traderStatus = 'running'; } styleToggleButton(); refreshAll(); } catch (e) { document.getElementById('action-status').textContent = `Toggle error: ${e.message}`; } });
+	document.getElementById('btn-flatten').addEventListener('click', async () => { try { document.getElementById('action-status').textContent = '...'; const res = await fetchJSON('/api/flatten', {method:'POST'}); document.getElementById('action-status').textContent = `Flattened. trade_pnl=${res.trade_pnl?.toFixed(2)} total=${res.total_pnl?.toFixed(2)}`; refreshAll(); } catch (e) { document.getElementById('action-status').textContent = `Error: ${e.message}`; } });
+	document.getElementById('btn-refresh').addEventListener('click', refreshAll);
+	document.getElementById('btn-save-symbol').addEventListener('click', saveSymbol);
+	// Debounced autosave for rules
+	let saveTimer = null;
+	function queueSaveRules(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveRules, 600); }
+	['f-exchange_code','f-quantity','f-buy_drop_pct','f-buy_drop_abs','f-take_profit_pct','f-take_profit_abs','f-stop_loss_pct','f-poll_interval_sec','f-quote_source','f-debug','f-min_warmup_samples','f-buy_immediate_on_start','f-buy_mode','f-sma_window','f-sma_drop_pct','f-market_tz','f-market_open','f-market_close','f-market_buffer_min'].forEach(id=>{
+		const el = document.getElementById(id); if (!el) return;
+		if (id === 'f-debug') {
+			// Immediate apply for debug: save and toggle right away
+			el.addEventListener('change', async () => {
+				try {
+					await saveRules();
+					// fetch fresh rules and toggle status tab immediately
+					const fresh = await fetchJSON('/api/rules');
+					cachedRules = fresh; cachedRulesAt = Date.now();
+					toggleStatusTab(Boolean(fresh && (fresh.debug === true || fresh.debug === 'true')));
+				} catch (e) { /* ignore */ }
+			});
+		} else {
+			el.addEventListener('input', queueSaveRules);
+		}
+	});
+
+	// Auto-calc ABS <-> PCT based on current LTP
+	async function getCurrentLtp() {
+		if (lastLtp != null && !isNaN(Number(lastLtp))) return Number(lastLtp);
+		try { const r = await fetchJSON('/api/ltp'); return Number(r.ltp) || 0; } catch { return 0; }
+	}
+	function setFieldValue(id, value) { const el = document.getElementById(id); if (el) el.value = value; }
+	let recalcLock = false;
+	async function linkAbsPct(absId, pctId) {
+		const absEl = document.getElementById(absId);
+		const pctEl = document.getElementById(pctId);
+		if (!absEl || !pctEl) return;
+		absEl.addEventListener('input', async () => {
+			if (recalcLock) return; recalcLock = true;
+			const ltp = await getCurrentLtp();
+			const abs = Number(absEl.value);
+			if (ltp > 0 && isFinite(abs)) setFieldValue(pctId, (abs / ltp).toFixed(4));
+			recalcLock = false; queueSaveRules();
+		});
+		pctEl.addEventListener('input', async () => {
+			if (recalcLock) return; recalcLock = true;
+			const ltp = await getCurrentLtp();
+			const pct = Number(pctEl.value);
+			if (ltp > 0 && isFinite(pct)) setFieldValue(absId, (pct * ltp).toFixed(2));
+			recalcLock = false; queueSaveRules();
+		});
+	}
+	linkAbsPct('f-buy_drop_abs','f-buy_drop_pct');
+	linkAbsPct('f-take_profit_abs','f-take_profit_pct');
+	document.getElementById('btn-download-logs').addEventListener('click', () => { try { const blob = new Blob([cachedLogs.join('\n')], {type:'text/plain'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; const dt = new Date().toISOString().replaceAll(':','-'); a.download = `logs_${dt}.txt`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); } catch (e) { document.getElementById('logs-status').textContent = `Download error: ${e.message}`; } });
+	document.getElementById('btn-clear-logs').addEventListener('click', async () => { const el = document.getElementById('logs-status'); try { el.textContent = 'Archiving and clearing…'; const res = await fetchJSON('/api/trader/logs/clear', {method:'POST'}); el.textContent = `Archived ${res.lines} lines to ${res.archived}`; cachedLogs = []; document.getElementById('logs').textContent = ''; setTimeout(()=>{ el.textContent=''; }, 8000); } catch(e){ el.textContent = `Clear error: ${e.message}`; } });
+	async function loadApiLogs(){ const fn = document.getElementById('api-log-file').value.trim() || 'apiLogs_1305.log'; const lim = Math.max(1, parseInt(document.getElementById('api-log-limit').value || '20', 10)); const el = document.getElementById('api-logs-status'); try { el.textContent = 'Loading…'; const resp = await fetchJSON(`/api/logs/api?file=${encodeURIComponent(fn)}&limit=${lim}`); document.getElementById('api-logs').textContent = (resp.lines || []).join('\n'); el.textContent = `${resp.count} lines`; } catch(e){ el.textContent = `Load error: ${e.message}`; } }
+	document.getElementById('btn-load-api-logs').addEventListener('click', loadApiLogs);
+	document.getElementById('api-log-limit').addEventListener('change', loadApiLogs);
+
+	function wirePasswordToggle(inputId, buttonId){
+		const input = document.getElementById(inputId);
+		const btn = document.getElementById(buttonId);
+		if(!input || !btn) return;
+		btn.addEventListener('click', ()=>{
+			const isHidden = input.type === 'password';
+			input.type = isHidden ? 'text' : 'password';
+			btn.title = isHidden ? 'Hide' : 'Show';
+		});
+	}
+
+	// Interactive chart state
+	let chartData = null;
+	let chartZoom = 1.0;
+	let chartOffset = 0;
+	let isDragging = false;
+	let dragStart = 0;
+
+	async function drawDayChart(){
+		const canvas = document.getElementById('day-chart'); if(!canvas) return;
+		const sel = document.getElementById('f-show_day_chart'); if (sel && sel.value !== 'true') { chartLoaded = false; return; }
+		if (chartLoaded) return; // Prevent multiple loads
+		chartLoaded = true;
+		
+		console.log('Drawing day chart...');
+		try{
+			const resp = await fetchJSON('/api/chart/day');
+			console.log('Chart API response:', resp);
+			chartData = resp.points || [];
+			console.log('Points count:', chartData.length);
+			
+			// Reset zoom when new data loads
+			chartZoom = 1.0;
+			chartOffset = 0;
+			
+			drawChart();
+		}catch(e){ 
+			console.log('Chart error:', e);
+			const ctx = document.getElementById('day-chart')?.getContext('2d'); 
+			if(ctx){ 
+				ctx.fillStyle='#7e8896'; 
+				ctx.font='12px Segoe UI, Arial';
+				ctx.fillText(`Chart error: ${e.message}`, 8, 16); 
+			}
+			chartLoaded = false; // Allow retry on error
+		}
+	}
+
+	function drawChart(){
+		const canvas = document.getElementById('day-chart'); if(!canvas || !chartData) return;
+		const ctx = canvas.getContext('2d'); 
+		const w = canvas.clientWidth; 
+		const h = canvas.clientHeight; 
+		canvas.width = w * devicePixelRatio; 
+		canvas.height = h * devicePixelRatio; 
+		ctx.scale(devicePixelRatio, devicePixelRatio);
+		ctx.clearRect(0,0,w,h);
+		
+		if (chartData.length < 2) { 
+			ctx.fillStyle = '#7e8896'; 
+			ctx.font = '14px Segoe UI, Arial';
+			ctx.fillText('No real market data available', 8, 16); 
+			ctx.fillText('Try a valid stock symbol like RELIANCE', 8, 36);
+			return; 
+		}
+
+		// Calculate visible range based on zoom and offset
+		const totalCandles = chartData.length;
+		const visibleCandles = Math.max(10, Math.floor(totalCandles / chartZoom));
+		const startIdx = Math.max(0, Math.min(totalCandles - visibleCandles, chartOffset));
+		const endIdx = Math.min(totalCandles, startIdx + visibleCandles);
+		const visibleData = chartData.slice(startIdx, endIdx);
+
+		const values = visibleData.map(p=>[p.o, p.h, p.l, p.c]).flat();
+		const times = visibleData.map(p=>p.t);
+		const minV = Math.min(...values); 
+		const maxV = Math.max(...values); 
+		const minT = times[0]; 
+		const maxT = times[times.length-1];
+
+		const padX=60, padY=20; 
+		const plotW = w - padX - 10, plotH = h - padY - 30;
+
+		const xOf = (t)=> padX + plotW * ((t - minT) / Math.max(maxT - minT, 1));
+		const yOf = (v)=> padY + (plotH) * (1 - (v - minV) / Math.max(maxV - minV, 0.0001));
+
+		// Grid
+		ctx.strokeStyle='#1f2533'; ctx.lineWidth=1; ctx.setLineDash([2,2]);
+		for (let i=0;i<=4;i++){ 
+			const y = padY + (plotH/4)*i; 
+			ctx.beginPath(); 
+			ctx.moveTo(padX, y); 
+			ctx.lineTo(w-8,y); 
+			ctx.stroke(); 
+		}
+		ctx.setLineDash([]);
+
+		// Draw candlesticks
+		const candleWidth = Math.max(2, plotW / visibleCandles * 0.8);
+		visibleData.forEach((candle, i)=>{
+			const x = xOf(candle.t) - candleWidth/2;
+			const openY = yOf(candle.o);
+			const closeY = yOf(candle.c);
+			const highY = yOf(candle.h);
+			const lowY = yOf(candle.l);
+			
+			const isGreen = candle.c >= candle.o;
+			ctx.strokeStyle = isGreen ? '#65d48c' : '#ff6b6b';
+			ctx.fillStyle = isGreen ? 'rgba(101,212,140,0.3)' : 'rgba(255,107,107,0.3)';
+			
+			// Wick
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			ctx.moveTo(x + candleWidth/2, highY);
+			ctx.lineTo(x + candleWidth/2, lowY);
+			ctx.stroke();
+			
+			// Body
+			ctx.fillRect(x, Math.min(openY, closeY), candleWidth, Math.abs(closeY - openY));
+			ctx.strokeRect(x, Math.min(openY, closeY), candleWidth, Math.abs(closeY - openY));
+		});
+
+		// Price line
+		ctx.lineWidth=2; 
+		const up = visibleData[visibleData.length-1].c >= visibleData[0].o; 
+		ctx.strokeStyle = up ? '#65d48c' : '#ff6b6b'; 
+		ctx.beginPath(); 
+		visibleData.forEach((candle,i)=>{ 
+			const x=xOf(candle.t), y=yOf(candle.c); 
+			if(i===0) ctx.moveTo(x,y); 
+			else ctx.lineTo(x,y); 
+		}); 
+		ctx.stroke();
+
+		// Axes labels
+		ctx.fillStyle='#7e8896'; ctx.font='11px Segoe UI, Arial'; 
+		ctx.textAlign='left'; 
+		ctx.fillText(maxV.toFixed(2), 6, padY+8); 
+		ctx.fillText(minV.toFixed(2), 6, padY+plotH);
+		ctx.textAlign='center'; 
+		const leftTs=new Date(minT), rightTs=new Date(maxT); 
+		ctx.fillText(leftTs.toLocaleTimeString(), padX, h-6); 
+		ctx.fillText(rightTs.toLocaleTimeString(), w-20, h-6);
+
+		// Update info
+		document.getElementById('chart-info').textContent = 
+			`${visibleCandles} candles | Zoom: ${chartZoom.toFixed(1)}x | ${startIdx+1}-${endIdx} of ${totalCandles}`;
+	}
+
+	// Chart interaction handlers
+	function initChartInteractions(){
+		const canvas = document.getElementById('day-chart');
+		if(!canvas) return;
+
+		// Mouse wheel zoom
+		canvas.addEventListener('wheel', (e)=>{
+			e.preventDefault();
+			const rect = canvas.getBoundingClientRect();
+			const mouseX = e.clientX - rect.left;
+			const zoomFactor = e.deltaY > 0 ? 1.1 : 0.9;
+			const newZoom = Math.max(0.5, Math.min(5.0, chartZoom * zoomFactor));
+			
+			// Zoom towards mouse position
+			const zoomRatio = newZoom / chartZoom;
+			const mouseTime = (mouseX - 60) / (canvas.clientWidth - 70);
+			chartOffset = chartOffset * zoomRatio + mouseTime * chartData.length * (1 - zoomRatio);
+			
+			chartZoom = newZoom;
+			drawChart();
+		});
+
+		// Mouse drag pan
+		canvas.addEventListener('mousedown', (e)=>{
+			isDragging = true;
+			dragStart = e.clientX;
+		});
+
+		canvas.addEventListener('mousemove', (e)=>{
+			if(isDragging){
+				const delta = e.clientX - dragStart;
+				const panSpeed = 0.5;
+				chartOffset = Math.max(0, Math.min(chartData.length - chartData.length/chartZoom, 
+					chartOffset - delta * panSpeed));
+				dragStart = e.clientX;
+				drawChart();
+			}
+		});
+
+		canvas.addEventListener('mouseup', ()=>{
+			isDragging = false;
+		});
+
+		canvas.addEventListener('mouseleave', ()=>{
+			isDragging = false;
+		});
+	}
+
+	document.addEventListener('DOMContentLoaded', ()=>{
+		restoreLayout();
+		// Disable right-click context menu
+		document.addEventListener('contextmenu', (e)=>{ e.preventDefault(); });
+		// Restore initial loaders and timers so values populate
+		try { populateTimezones(); } catch(e){}
+		try { loadSymbol(); } catch(e){}
+		try { loadRules(); } catch(e){}
+		try { refreshAll(); } catch(e){}
+		// Initialize chart interactions (but don't load data yet)
+		try { initChartInteractions(); } catch(e){}
+		// start fast and slow ticks if not already
+		if (!window.__ticks_started) {
+			window.__ticks_started = true;
+			try { fastTick = setInterval(refreshLtpFast, 2000); } catch(e){} // Slower LTP updates
+			try { slowTick = setInterval(()=>{ if (!slowBusy) { slowBusy = true; refreshAll().finally(()=> slowBusy = false); } }, 8000); } catch(e){} // Slower full refreshes
+		}
+		// Set initial drag enabled based on rules
+		fetchJSON('/api/rules').then(r=> setDragEnabled(Boolean(r && (r.debug === true || r.debug === 'true')))).catch(()=>{});
+		// Auto-refresh when tab becomes visible again
+		document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) { try { refreshAll(); } catch(e){} } });
+		// Show/hide debug-only tabs
+		fetchJSON('/api/rules').then(r=>{ const show = Boolean(r && (r.debug === true || r.debug === 'true')); toggleStatusTab(show); toggleAuthTab(show); if(show){ loadCreds(); } }).catch(()=>{});
+		// Initialize fancy sliders (dynamic progress fill)
+		(function initSliders(){
+			function applyFill(r){ const min = Number(r.min || 0); const max = Number(r.max || 100); const val = Number(r.value || 0); const pct = Math.max(0, Math.min(100, ((val - min) * 100) / Math.max(1, max - min))); const fill = `linear-gradient(90deg, rgba(160,102,255,0.45) ${pct}%, rgba(160,102,255,0.12) ${pct}%)`; const base = `linear-gradient(90deg, rgba(160,102,255,0.22), rgba(120,70,220,0.18), rgba(160,102,255,0.22))`; r.style.backgroundImage = fill + "," + base; }
+			const ranges = Array.from(document.querySelectorAll('input[type="range"]'));
+			ranges.forEach(r=>{ applyFill(r); r.addEventListener('input', ()=> applyFill(r)); r.addEventListener('change', ()=> applyFill(r)); });
+		})();
+	});
+
+	// Auth tab wiring
+	async function loadCreds(){ try { const c = await fetchJSON('/api/creds'); document.getElementById('cred-api-key').value = c.api_key || ''; document.getElementById('cred-api-secret').value = c.api_secret || ''; document.getElementById('cred-session-token').value = c.session_token || ''; } catch(e){ document.getElementById('creds-status').textContent = `Load error: ${e.message}`; } }
+	async function saveCreds(){ try { const body = { api_key: document.getElementById('cred-api-key').value, api_secret: document.getElementById('cred-api-secret').value, session_token: document.getElementById('cred-session-token').value }; document.getElementById('creds-status').style.fontStyle='italic'; document.getElementById('creds-status').textContent = 'Saving…'; await fetchJSON('/api/creds', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)}); document.getElementById('creds-status').style.fontStyle='normal'; document.getElementById('creds-status').textContent = 'Saved'; setTimeout(()=>{ document.getElementById('creds-status').textContent=''; }, 20000); } catch(e){ document.getElementById('creds-status').textContent = `Save error: ${e.message}`; } }
+	document.getElementById('btn-save-creds').addEventListener('click', saveCreds);
+	
+	// Chart control buttons
+	document.getElementById('btn-zoom-in').addEventListener('click', ()=>{
+		chartZoom = Math.min(5.0, chartZoom * 1.2);
+		drawChart();
+	});
+	document.getElementById('btn-zoom-out').addEventListener('click', ()=>{
+		chartZoom = Math.max(0.5, chartZoom * 0.8);
+		drawChart();
+	});
+	document.getElementById('btn-reset-zoom').addEventListener('click', ()=>{
+		chartZoom = 1.0;
+		chartOffset = 0;
+		drawChart();
+	});
+	</script>
+</body>
+</html>
